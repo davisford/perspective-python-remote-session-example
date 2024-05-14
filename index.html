@@ -1,0 +1,78 @@
+<!--
+   
+   Copyright (c) 2017, the Perspective Authors.
+   
+   This file is part of the Perspective library, distributed under the terms of
+   the Apache License 2.0.  The full license can be found in the LICENSE file.
+
+-->
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+     
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@finos/perspective@2.10.0/dist/cdn/perspective.js"></script>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@finos/perspective-viewer@2.10.0/dist/cdn/perspective-viewer.js"></script>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@finos/perspective-viewer-datagrid@2.10.0/dist/cdn/perspective-viewer-datagrid.js"></script>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@finos/perspective-viewer-d3fc@2.10.0/dist/cdn/perspective-viewer-d3fc.js"></script>
+
+        <link rel="stylesheet" crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/@finos/perspective-viewer/dist/css/themes.css" />
+
+        <link rel="preload" href="https://cdn.jsdelivr.net/npm/@finos/perspective@2.10.0/dist/cdn/perspective.cpp.wasm" as="fetch" type="application/wasm" crossorigin="anonymous" />
+        <link rel="preload" href="https://cdn.jsdelivr.net/npm/@finos/perspective-viewer@2.10.0/dist/cdn/perspective_bg.wasm" as="fetch" type="application/wasm" crossorigin="anonymous" />
+        <link rel="preload" href="https://cdn.jsdelivr.net/npm/@finos/perspective@2.10.0/dist/cdn/perspective.worker.js" as="fetch" type="application/javascript" crossorigin="anonymous" />
+
+         <style>
+            perspective-viewer {
+                position: absolute;
+                top: 45px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <input id="filename" placeholder="Enter a filepath" />
+        <button id="open">Open</button>
+        <perspective-viewer id="viewer"></perspective-viewer>
+        <script type="module">
+            import perspective from "https://cdn.jsdelivr.net/npm/@finos/perspective@2.10.0/dist/cdn/perspective.js";
+
+            class RPCWebSocket {
+                static async create(url) {
+                    return await new Promise(resolve => {
+                        const client = new RPCWebSocket();
+                        client.ws = new WebSocket(url); 
+                        client.ws.onopen = () => {
+                            resolve(client);
+                        };
+                    })
+                }
+
+                async oneshot(req) {
+                    return await new Promise((recv) => {
+                        this.ws.onmessage = (resp) => {
+                            this.ws.onmessage = undefined;
+                            recv(JSON.parse(resp.data));
+                        };
+
+                        this.ws.send(JSON.stringify(req));
+                    });
+                }
+            }
+
+            window.addEventListener("DOMContentLoaded", async function () {
+                const rpc_ws = await RPCWebSocket.create("ws://localhost:8080/rpc_websocket");
+                const perspective_ws = perspective.websocket("ws://localhost:8080/perspective_websocket");
+                document.querySelector("#open").addEventListener("click", async () => {
+                    const filepath = document.querySelector("#filename").value;
+                    const resp = await oneshot(rpc_ws, { cmd: "open", filepath });
+                    const server_table = await perspective_ws.open_table(resp.table_name);
+                    document.getElementById("viewer").load(server_table);
+                });
+            });
+        </script>
+    </body>
+</html>
