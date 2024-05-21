@@ -34,7 +34,7 @@
         </style>
     </head>
     <body>
-        <input id="filename" placeholder="Enter a filepath" />
+        <input id="filename" placeholder="Enter a filepath" value="/Users/dford/Downloads/superstore.arrow" />
         <button id="open">Open</button>
         <perspective-viewer id="viewer"></perspective-viewer>
         <script type="module">
@@ -64,11 +64,11 @@
             }
 
             window.addEventListener("DOMContentLoaded", async function () {
-                const rpc_ws = await RPCWebSocket.create("ws://localhost:8080/rpc_websocket");
-                const perspective_ws = perspective.websocket("ws://localhost:8080/perspective_websocket");
+                const rpc_ws = await RPCWebSocket.create("ws://localhost:8086/rpc_websocket");
+                const perspective_ws = perspective.websocket("ws://localhost:8086/perspective_websocket");
                 document.querySelector("#open").addEventListener("click", async () => {
                     const filepath = document.querySelector("#filename").value;
-                    const resp = await oneshot(rpc_ws, { cmd: "open", filepath });
+                    const resp = await rpc_ws.oneshot({ cmd: "open", filepath });
                     const server_table = await perspective_ws.open_table(resp.table_name);
                     document.getElementById("viewer").load(server_table);
                 });
