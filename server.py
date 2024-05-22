@@ -68,7 +68,7 @@ class RPCWebSocket(tornado.websocket.WebSocketHandler):
         self.write_message(json.dumps({"table_name": self.name}))
 
     def on_close(self):
-        tornado.ioloop.IOLoop.current().add_timeout(1, lambda: self.cleanup)
+        tornado.ioloop.IOLoop.current().add_timeout(1, self.cleanup)
         print("WebSocket closed, table deleted")
 
     def cleanup(self):
